@@ -29,7 +29,8 @@ public class CreateDataBaseWithRandomInfo {
     public static void main(String[] args) {
         try 
         {
-            useJSoup("Random Movie Generator - Watch new movies!.html");
+            //useJSoup("Random Movie Generator - Watch new movies!.html");
+            useJSoup("Random Celebrities.html");
             // TODO code application logic here
             /*
                    USED TO ADD DATA TO THE DATABASE!
@@ -105,9 +106,9 @@ public class CreateDataBaseWithRandomInfo {
             });
             
             Gson gson = new Gson();
-            FileWriter fileWriter = new FileWriter("MovieNames.json");
-            gson.toJson(celebritiesNames, fileWriter);
-            fileWriter.close();
+            try (FileWriter fileWriter = new FileWriter("CelebritiesNames.json")) {
+                gson.toJson(celebritiesNames, fileWriter);
+            }
         } 
         catch (IOException ex) 
         {
