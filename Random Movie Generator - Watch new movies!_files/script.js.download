@@ -1,0 +1,1699 @@
+var imageArray = new Array(),
+    feedFailed = false,
+    loadedImgs = 0,
+    checkTimer,
+    loop;
+
+var movng = false,
+    width = 300,
+    cItem = 1,
+    limit = 3,
+    feedType;
+
+var introHidden = false;
+var defaultFeed;
+var isDefault;
+
+var isMobile = {
+    Android: function () {
+        return navigator.userAgent.match(/Android/i);
+    },
+    BlackBerry: function () {
+        return navigator.userAgent.match(/BlackBerry/i);
+    },
+    iOS: function () {
+        return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+    },
+    Opera: function () {
+        return navigator.userAgent.match(/Opera Mini/i);
+    },
+    Windows: function () {
+        return navigator.userAgent.match(/IEMobile/i) || navigator.userAgent.match(/WPDesktop/i);
+    },
+    any: function () {
+        return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+    }
+};
+
+window.onload = function () {
+    myFT.on("instantads", function () {
+        checkTimer = setInterval(checkIA, 500);
+    });
+}
+
+var checkIA = function () {
+    if (myFT.instantAdsLoaded) {
+        clearInterval(checkTimer);
+
+        myFT.instantAds.frame1_onOff = normalizeIA(myFT.instantAds.frame1_onOff);
+        myFT.instantAds.carousel_arrow_onOff = normalizeIA(myFT.instantAds.carousel_arrow_onOff);
+        myFT.instantAds.frame1_panRightToLeft = normalizeIA(myFT.instantAds.frame1_panRightToLeft);
+        myFT.instantAds.frame1_panLeftToRight = normalizeIA(myFT.instantAds.frame1_panLeftToRight);
+        myFT.instantAds.frame1_zoomIn = normalizeIA(myFT.instantAds.frame1_zoomIn);
+        myFT.instantAds.frame1_zoomOut = normalizeIA(myFT.instantAds.frame1_zoomOut);
+        myFT.instantAds.isProspecting = normalizeIA(myFT.instantAds.isProspecting);
+        myFT.instantAds.frame1_backgroundImage_onOff = normalizeIA(myFT.instantAds.frame1_backgroundImage_onOff);
+        myFT.instantAds.Carousel_onOff = normalizeIA(myFT.instantAds.Carousel_onOff);
+
+        if (myFT.instantAds.hotel_price_copy == "") myFT.instantAds.hotel_price_copy = "&nbsp;";
+
+        setBackgroundAnimation();
+        setTimeout(feedCompare, 1000);
+    }
+}
+
+function setBackgroundAnimation() {
+    if (myFT.instantAds.frame1_onOff.toLowerCase() == "true") {
+        if (myFT.instantAds.frame1_zoomOut.toLowerCase() == "true" && myFT.instantAds.frame1_zoomIn.toLowerCase() == "false" && myFT.instantAds.frame1_panRightToLeft.toLowerCase() == "false" && myFT.instantAds.frame1_panLeftToRight.toLowerCase() == "false") {
+            frame_intro_bgkd.css({
+                "transform": "matrix(1, 0, 0, 1, 0, 0) scale(1." + parseFloat(myFT.instantAds.frame1_zoomDistance) + ") rotate(0.01deg)"
+            });
+        } else {
+            frame_intro_bgkd.css({
+                "transform": "matrix(1, 0, 0, 1, 0, 0) scale(1) rotate(0.01deg)"
+            });
+        }
+    }
+}
+
+function feedCompare() {
+    try {
+        if (myFT.instantAds.feedEndpoint == myFT.instantAds.default_feedEndpoint) {
+            feedInitialize();
+        } else {
+            var status = true;
+            var cloneFT = myFT;
+
+            var temp_feedEndpoint = myFT.instantAds.feedEndpoint;
+            var temp_defaultFeedEndpoint = myFT.instantAds.default_feedEndpoint;
+
+            cloneFT.instantAds.feedEndpoint = myFT.instantAds.default_feedEndpoint;
+            cloneFT.instantAds.default_feedEndpoint = myFT.instantAds.default_feedEndpoint;
+
+            var cloneFeedParams = new FTFeedParams();
+
+            cloneFeedParams.segmentId = cloneFT.instantAds.segmentId;
+            cloneFeedParams.feedEndPoint = cloneFT.instantAds.default_feedEndpoint;
+            cloneFeedParams.defaultFeedEndpoint = cloneFT.instantAds.default_feedEndpoint;
+
+            var cloneFTFeed = new FTFeed(cloneFT, cloneFeedParams);
+
+            myFT.instantAds.feedEndpoint = temp_feedEndpoint;
+            myFT.instantAds.default_feedEndpoint = temp_defaultFeedEndpoint;
+
+            cloneFTFeed.getFeed(compareSuccessful, compareFailed);
+
+            function compareSuccessful(i, u) {
+                if (status == true) {
+                    feedInitialize(i, u);
+                }
+            }
+
+            function compareFailed() {
+                console.log("Comparing failed.");
+                status = false;
+
+                feedInitialize();
+            }
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function feedCompare()");
+        feedFail();
+    }
+}
+
+function feedInitialize(i, u) {
+    try {
+        defaultFeed = u;
+
+        if (myFT.instantAds.frame1_onOff.toLowerCase() == "false" && myFT.instantAds.Carousel_onOff.toLowerCase() == "false") {
+            feedFail();
+        } else {
+            var feedParams = new FTFeedParams();
+
+            feedParams.segmentId = myFT.instantAds.segmentId;
+            feedParams.feedEndPoint = myFT.instantAds.feedEndpoint;
+            feedParams.defaultFeedEndpoint = myFT.instantAds.default_feedEndpoint;
+
+            var ftFeed = new FTFeed(myFT, feedParams);
+
+            ftFeed.getFeed(feedSuccessful, feedFail);
+        }
+
+        if (isMobile.any()) {
+            document.addEventListener("touchmove", function () {
+                // Do not remove this. This fixes iOS bugs disabling swipe events when focus changes.
+            })
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function feedInitialize()");
+        feedFail();
+    }
+}
+
+function feedFail() {
+    if (feedFailed != true) {
+        console.log("feedFail() function was called.");
+
+        myFT.tracker("backupImageTriggered", 0, "backupImageTriggered");
+
+        frame_crsl_cont.remove();
+        frame_crsl_ctrl.remove();
+
+        feedFailed = true;
+
+        var frame_crsl_fail = document.createElement("div")
+
+        clickTag(frame_crsl_fail, 2, myFT.instantAds.feedfail_URL);
+
+        frame_crsl_fail.id = "frame_crsl_fail";
+        frame_crsl_fail.className = "img";
+        frame_crsl_fail.css({
+            "background-image": "url('" + myFT.instantAds.feedfail_image + "')"
+        });
+
+        if (myFT.instantAds.frame1_onOff.toLowerCase() == "true") {
+            frame_crsl.appendChild(frame_crsl_fail);
+        } else {
+            main.appendChild(frame_crsl_fail);
+            main.css({
+                "visibility": "visible"
+            });
+
+            frame_crsl_fail.css({
+                "left": "-1px",
+                "top": "-1px"
+            });
+
+            frame_crsl.remove();
+        }
+
+        frameIntroSet();
+        feedSuccessful();
+    }
+}
+
+function feedSuccessful(feedItem, feedUrl) {
+    try {
+        if (feedFailed != true && feedItem.length >= 3) {
+            console.log(feedItem);
+
+            isDefault = (feedUrl == defaultFeed);
+            var isPriceEmpty = (feedItem[0].powerfeeds_price == "" || feedItem[0].powerfeeds_price == "undefined" || feedItem[0].powerfeeds_price == undefined || feedItem[0].powerfeeds_price == 0) ? "true" : "false";
+
+            if (String(myFT.instantAds.isProspecting) == "true" || String(isPriceEmpty) == "true" || String(feedItem[0].prospecting) == "true") {
+                myFT.tracker("prospecting", 0, "prospecting");
+            } else {
+                myFT.tracker("retargeting", 0, "retargeting");
+            }
+
+            if (feedItem[0].powerfeeds_price == "") {
+                var endpointType = "city";
+            } else {
+                var endpointType = "property";
+            }
+            frameIntroSet(feedItem, endpointType);
+
+            if (document.getElementById("crsl_ctrl_left") != null && document.getElementById("crsl_ctrl_rght") != null && document.getElementById("frame_crsl_ctrl") != null) {
+                if (myFT.instantAds.carousel_arrow_onOff.toLowerCase() == "true") {
+                    imageArray.push([crsl_ctrl_left, "images/arrow_left.png"]);
+                    imageArray.push([crsl_ctrl_rght, "images/arrow_right.png"]);
+                } else {
+                    frame_crsl_ctrl.remove();
+                }
+            }
+
+            if (myFT.instantAds.carousel_layout.toLowerCase() == "slideshow") {
+                carouselSlideshow(feedItem, endpointType);
+            } else if (myFT.instantAds.carousel_layout.toLowerCase() == "all") {
+                carouselAll(feedItem, endpointType);
+            } else {
+                carouselSingle(feedItem, endpointType);
+            }
+        } else {
+            feedFail();
+        }
+
+        imagePreload();
+    } catch (error) {
+        console.error("Error: " + error.message + ": function feedSuccessful()");
+        feedFail();
+    }
+}
+
+function frameIntroSet(feedItem, endpointType) {
+    try {
+        if (myFT.instantAds.frame1_onOff.toLowerCase() == "true") {
+            if (myFT.instantAds.frame1_headline != "") {
+
+                var f1headline = (isDefault || feedFailed) ? myFT.instantAds.frame1_fallback_headline : myFT.instantAds.frame1_headline;
+
+                if (f1headline.indexOf("[%CITY%]") > -1 && feedItem != undefined) {
+                    var name = f1headline.replace("[%CITY%]", feedItem[0].city);
+                    frame_intro_hdln.innerHTML = name;
+                } else if (f1headline.indexOf("[%city%]") > -1 && feedItem != undefined) {
+                    var name = f1headline.replace("[%city%]", feedItem[0].city);
+                    frame_intro_hdln.innerHTML = name;
+                } else {
+                    frame_intro_hdln.innerHTML = f1headline;
+                }
+
+                var topOffset = (checkPlatform()[1] == "Mozilla Firefox") ? -3 : 0;
+
+                frame_intro_hdln.css({
+                    "color": myFT.instantAds.frame1_headline_color,
+                    "left": "0px",
+                    "top": (Number(myFT.instantAds.frame1_headline_y) + topOffset) + "px"
+                });
+            } else {
+                if (document.getElementById("frame_intro_hdln") != null) frame_intro_hdln.remove();
+            }
+
+            if (myFT.instantAds.frame1_subheadline != "") {
+
+                if (myFT.instantAds.frame1_subheadline.indexOf("[%CITY%]") > -1) {
+                    var name = myFT.instantAds.frame1_subheadline.replace("[%CITY%]", feedItem[0].city);
+                    frame_intro_sbhl.innerHTML = name;
+                } else if (myFT.instantAds.frame1_subheadline.indexOf("[%city%]") > -1) {
+                    var name = myFT.instantAds.frame1_subheadline.replace("[%city%]", feedItem[0].city);
+                    frame_intro_sbhl.innerHTML = name;
+                } else {
+                    frame_intro_sbhl.innerHTML = myFT.instantAds.frame1_subheadline;
+                }
+
+                frame_intro_sbhl.css({
+                    "color": myFT.instantAds.frame1_subheadline_color,
+                    "left": "0px",
+                    "top": myFT.instantAds.frame1_subheadline_y + "px"
+                });
+            } else {
+                if (document.getElementById("frame_intro_sbhl") != null) frame_intro_sbhl.remove();
+            }
+
+            if (myFT.instantAds.frame1_CTA_copy != "") {
+                frame_intro_bttn.innerHTML = myFT.instantAds.frame1_CTA_copy;
+                frame_intro_bttn.css({
+                    "backgroundColor": myFT.instantAds.frame1_CTA_color,
+                    "left": myFT.instantAds.frame1_CTA_x + "px",
+                    "top": myFT.instantAds.frame1_CTA_y + "px"
+                });
+            } else {
+                if (document.getElementById("frame_intro_bttn") != null) frame_intro_bttn.remove();
+            }
+
+            if (document.getElementById("frame_intro_logo") != null) frame_intro_logo.classList.add("hide");
+            if (document.getElementById("frame_intro_icon") != null) frame_intro_icon.classList.add("hide");
+            if (document.getElementById("frame_intro_hdln") != null) frame_intro_hdln.classList.add("hide");
+            if (document.getElementById("frame_intro_sbhl") != null) frame_intro_sbhl.classList.add("hide");
+            if (document.getElementById("frame_intro_bttn") != null) frame_intro_bttn.classList.add("hide");
+
+            if (document.getElementById("frame_intro_bgkd") != null) {
+                frame_intro_bgkd.css({
+                    "transition": "transform " + parseFloat(myFT.instantAds.frame1_timing) + "s linear"
+                })
+            }
+
+            if (document.getElementById("frame_intro_logo") != null) {
+                frame_intro_logo.css({
+                    "transition": "opacity 0.5s ease"
+                });
+            }
+            if (document.getElementById("frame_intro_icon") != null) {
+                frame_intro_icon.css({
+                    "transition": "opacity 0.5s ease"
+                });
+            }
+            if (document.getElementById("frame_intro_hdln") != null) {
+                frame_intro_hdln.css({
+                    "transition": "opacity 0.5s ease"
+                });
+            }
+            if (document.getElementById("frame_intro_sbhl") != null) {
+                frame_intro_sbhl.css({
+                    "transition": "opacity 0.5s ease"
+                });
+            }
+            if (document.getElementById("frame_intro_bttn") != null) {
+                frame_intro_bttn.css({
+                    "transition": "opacity 0.5s ease"
+                });
+            }
+
+            if (myFT.instantAds.frame1_backgroundImage_onOff.toLowerCase() == "true") {
+                imageArray.push([frame_intro_bgkd, myFT.instantAds.frame1_backgroundImage]);
+            } else {
+                if (feedItem != undefined) {
+                    imageArray.push([frame_intro_bgkd, feedItem[0].city_image]);
+
+                    frame_intro_bgkd.css({
+                        "backgroundSize": "cover",
+                        "width": (width + (Number(myFT.instantAds.frame1_panDistance) * 2)) + "px",
+                        "left": (Number(myFT.instantAds.frame1_panDistance) * -1) + "px"
+                    });
+                } else {
+                    imageArray.push([frame_intro_bgkd, myFT.instantAds.frame1_backgroundImage]);
+                }
+            }
+
+            imageArray.push([frame_intro_logo, myFT.instantAds.frame1_logo]);
+            imageArray.push([frame_intro_icon, myFT.instantAds.frame1_iconLogo]);
+
+            var intro_url = (feedFailed == true) ? myFT.instantAds.frame1_URL : feedItem[0].city_link;
+            clickTag(frame_intro, 1, intro_url);
+        } else {
+            if (document.getElementById("frame_intro") != null) frame_intro.remove();
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function frameIntroSet()");
+        feedFail();
+    }
+}
+
+function imagePreload() {
+    try {
+        iArray = imageArray;
+
+        for (var i = 0; i < iArray.length; i++) {
+            var imageObject = new Image();
+
+            imageObject.src = iArray[i][1];
+
+            imageObject.addEventListener("load", function () {
+                loadedImgs++;
+
+                if (imageArray.length == loadedImgs) {
+                    for (var i = 0; i < imageArray.length; i++) {
+                        if (imageArray[i][0].tagName == "DIV" || imageArray[i][0].tagName == "SPAN") {
+                            imageArray[i][0].css({
+                                "background-image": "url('" + imageArray[i][1] + "')"
+                            });
+                        } else if (imageArray[i][0].tagName == "IMG") {
+                            imageArray[i][0].src = imageArray[i][1];
+                        }
+                    }
+
+                    setTimeout(function () {
+                        adInitialize();
+                    }, 500);
+                }
+            }, false);
+            imageObject.addEventListener("error", function () {
+                feedFail();
+            }, false);
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function imagePreload()");
+        feedFail();
+    }
+}
+
+function adInitialize() {
+    try {
+        if (document.getElementById("frame_crsl_cont") != null) {
+            if (myFT.instantAds.carousel_layout == "single") {
+                var frame_last = frame_crsl_cont.childNodes[frame_crsl_cont.childNodes.length - 1].cloneNode(true);
+                frame_last.id = "frame_crsl_0";
+                frame_crsl_cont.insertBefore(frame_last, document.getElementsByClassName("frame_crsl")[0]);
+
+                var frame_frst = frame_crsl_cont.childNodes[1].cloneNode(true);
+                frame_frst.id = "frame_crsl_" + (frame_crsl_cont.childNodes.length);
+                frame_crsl_cont.appendChild(frame_frst);
+            }
+        }
+
+        if (myFT.instantAds.frame1_onOff.toLowerCase() != "true") {
+            frame_crsl.css({
+                "opacity": "1"
+            });
+        }
+
+        main.css({
+            "visibility": "visible"
+        });
+
+        var url = window.location.href;
+        var isCreativePreview = myFT.get('tiaServeDom');
+        //test to see if banner is local. If not check viewability
+        if (url.search("https://localhost/") > -1 || isCreativePreview) {
+            setTimeout(function () {
+                console.log('animate');
+                animate();
+            }, 500);
+        } else {
+            checkVisibility();
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function adInitialize()");
+        feedFail();
+    }
+}
+
+function checkVisibility() {
+    var started = false;
+    if (30 <= myFT.visibility.percentInView || window == top) {
+        started = true;
+        animate();
+    } else {
+        myFT.on('visibilityupdate', function (e) {
+            console.log(Math.ceil(e.percentInView) + "%");
+            if (e.percentInView >= 30) {
+                if (!started) {
+                    setTimeout(function () {
+                        started = true;
+                        // console.log('animate');
+                        animate();
+                    }, 500);
+                    myFT.off('visibilityupdate');
+                }
+            }
+        });
+    }
+}
+
+function animate() {
+    try {
+        var t;
+
+        if (myFT.instantAds.carousel_layout.toLowerCase() == "slideshow") {
+            t = "slideshow";
+        } else if (myFT.instantAds.carousel_layout.toLowerCase() == "all") {
+            t = "all";
+        } else {
+            t = "single";
+        }
+
+        if (myFT.instantAds.frame1_onOff.toLowerCase() == "true") {
+            if (myFT.instantAds.frame1_panRightToLeft.toLowerCase() == "true" && myFT.instantAds.frame1_panLeftToRight.toLowerCase() == "false" && myFT.instantAds.frame1_zoomIn.toLowerCase() == "false" && myFT.instantAds.frame1_zoomOut.toLowerCase() == "false") {
+                frame_intro_bgkd.css({
+                    "transform": "matrix(1, 0, 0, 1, " + (parseFloat(myFT.instantAds.frame1_panDistance) * -1) + ", 0) scale(1) rotate(0.01deg)"
+                });
+            } else if (myFT.instantAds.frame1_panRightToLeft.toLowerCase() == "false" && myFT.instantAds.frame1_panLeftToRight.toLowerCase() == "true" && myFT.instantAds.frame1_zoomIn.toLowerCase() == "false" && myFT.instantAds.frame1_zoomOut.toLowerCase() == "false") {
+                frame_intro_bgkd.css({
+                    "transform": "matrix(1, 0, 0, 1, " + parseFloat(myFT.instantAds.frame1_panDistance) + ", 0) scale(1) rotate(0.01deg)"
+                });
+            } else if (myFT.instantAds.frame1_zoomIn.toLowerCase() == "true" && myFT.instantAds.frame1_zoomOut.toLowerCase() == "false" && myFT.instantAds.frame1_panRightToLeft.toLowerCase() == "false" && myFT.instantAds.frame1_panLeftToRight.toLowerCase() == "false") {
+                frame_intro_bgkd.css({
+                    "transform": "matrix(1, 0, 0, 1, 0, 0) scale(1." + parseFloat(myFT.instantAds.frame1_zoomDistance) + ") rotate(0.01deg)"
+                });
+            } else if (myFT.instantAds.frame1_zoomOut.toLowerCase() == "true" && myFT.instantAds.frame1_zoomIn.toLowerCase() == "false" && myFT.instantAds.frame1_panRightToLeft.toLowerCase() == "false" && myFT.instantAds.frame1_panLeftToRight.toLowerCase() == "false") {
+                frame_intro_bgkd.css({
+                    "transform": "matrix(1, 0, 0, 1, 0, 0) scale(1) rotate(0.01deg)"
+                });
+            }
+
+            for (var i = 0; i < frame_intro.children.length; i++) {
+                frame_intro.children[i].classList.remove("hide");
+            }
+
+            if (myFT.instantAds.Carousel_onOff.toLowerCase() == "true") {
+                frame_crsl.css({
+                    "opacity": "1"
+                });
+
+                setTimeout(function () {
+                    frame_intro.css({
+                        "opacity": "0"
+                    });
+
+                    setTimeout(function () {
+                        frame_intro.addEventListener("transitionend", function () {
+                            frame_intro.css({
+                                "display": "none"
+                            });
+
+                            introHidden = true;
+                        });
+                    }, 300);
+
+                    if (feedFailed != true) carouselAutoplay(t);
+                }, ((myFT.instantAds.frame1_timing) * 1000));
+            }
+        } else {
+            if (feedFailed != true) carouselAutoplay(t);
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function animate()");
+        feedFail();
+    }
+}
+
+function carouselSingle(feedItem, endpointType) {
+    try {
+        console.log("Carousel Type: Single");
+
+        for (var i = 0; i < limit; i++) {
+            // - - ADD: Frame - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl = createElement("frame_crsl_" + (i + 1), "frame_crsl single " + endpointType);
+            frame_crsl_cont.appendChild(frame_crsl);
+
+            // - - ADD: Image - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_img = createElement("frame_crsl_img_" + (i + 1), "frame_crsl_img");
+            frame_crsl.appendChild(frame_crsl_img);
+
+            imageArray.push([frame_crsl_img, feedItem[i].powerfeeds_image.split('adaptiveResize').join('w=300&h=300&adaptiveResize')]);
+
+            // - - ADD: Flag - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_flg = createElement("frame_crsl_flg_" + (i + 1), "frame_crsl_flg");
+            frame_crsl.appendChild(frame_crsl_flg);
+
+            imageArray.push([frame_crsl_flg, myFT.instantAds.flag]);
+
+            // - - ADD: Stars - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_str = createElement("frame_crsl_str_" + (i + 1), "frame_crsl_str");
+                frame_crsl.appendChild(frame_crsl_str);
+
+                imageArray.push([frame_crsl_str, "images/stars_single_" + normalizePrice(feedItem[i].starrating) + ".png"]);
+            }
+
+            // - - ADD: Logo - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_lgo = createElement("frame_crsl_lgo_" + (i + 1), "frame_crsl_lgo");
+            frame_crsl.appendChild(frame_crsl_lgo);
+
+            imageArray.push([frame_crsl_lgo, myFT.instantAds.logo]);
+
+            // - - ADD: Name - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "city") {
+
+                var f2citySinglecopy = (isDefault) ? myFT.instantAds["fallback_city_copy_" + (i + 1)] : myFT.instantAds["city_copy_" + (i + 1)];
+
+                if (f2citySinglecopy.indexOf("[%CITY%]") > -1) {
+                    var name = f2citySinglecopy.replace("[%CITY%]", feedItem[i].name);
+                } else if (f2citySinglecopy.indexOf("[%city%]") > -1) {
+                    var name = f2citySinglecopy.replace("[%city%]", feedItem[i].name);
+                } else {
+                    var name = f2citySinglecopy;
+                }
+
+                var frame_crsl_nme = createElement("frame_crsl_hln_" + (i + 1), "frame_crsl_hln", name);
+            } else {
+
+                var f2propSinglecopy = (isDefault) ? myFT.instantAds["fallback_city_copy_" + (i + 1)] : feedItem[i].name;
+
+                if (f2propSinglecopy.indexOf("[%CITY%]") > -1) {
+                    var name = f2propSinglecopy.replace("[%CITY%]", feedItem[i].name);
+                } else if (f2propSinglecopy.indexOf("[%city%]") > -1) {
+                    var name = f2propSinglecopy.replace("[%city%]", feedItem[i].name);
+                } else {
+                    var name = f2propSinglecopy;
+                }
+
+                var frame_crsl_nme = createElement("frame_crsl_nme_" + (i + 1), "frame_crsl_nme", name);
+            }
+
+            frame_crsl.appendChild(frame_crsl_nme);
+
+            // - - ADD: Sub-Price - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_spr = createElement("frame_crsl_spr_" + (i + 1), "frame_crsl_spr", myFT.instantAds.hotel_price_copy);
+                frame_crsl.appendChild(frame_crsl_spr);
+            }
+
+            // - - ADD: Price - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_prc = createElement("frame_crsl_prc_" + (i + 1), "frame_crsl_prc", "$" + feedItem[i].powerfeeds_price);
+                frame_crsl.appendChild(frame_crsl_prc);
+
+                frame_crsl_prc.css({
+                    "color": myFT.instantAds.price_color
+                });
+            }
+
+            // - - ADD: Hitarea - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_hit = createElement("frame_crsl_hit_" + (i + 1), "frame_crsl_hit");
+            frame_crsl.appendChild(frame_crsl_hit);
+
+            // - - ADD: CTA - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_cta = createElement("frame_crsl_cta_" + (i + 1), "frame_crsl_cta", (endpointType == "property") ? myFT.instantAds.CTA_property_copy : myFT.instantAds.CTA_city_copy);
+            frame_crsl.appendChild(frame_crsl_cta);
+
+            frame_crsl_cta.css({
+                "background-color": myFT.instantAds.CTA_color
+            });
+
+            clickTag(document.getElementById("frame_crsl_hit_" + (i + 1)), (i + 4), feedItem[i].hotel_link);
+            clickTag(document.getElementById("frame_crsl_cta_" + (i + 1)), (i + 4), feedItem[i].hotel_link);
+
+            var f2singleheadline = (isDefault) ? myFT.instantAds.fallback_headline : myFT.instantAds.headline;
+
+            if (f2singleheadline != "" && myFT.instantAds.headline_icon.indexOf("blank") < 0) {
+
+                if (f2singleheadline.indexOf("[%CITY%]") > -1) {
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln_cont", "hdln_cont text single");
+                    document.getElementById("frame_crsl_" + (i + 1)).appendChild(frame_crsl_hdln);
+
+                    var frame_crsl_hdln_icon = document.createElement("span");
+                    frame_crsl_hdln_icon.id = "frame_crsl_hdln_icon";
+                    frame_crsl_hdln_icon.className = "icon";
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_icon);
+
+                    imageArray.push([frame_crsl_hdln_icon, myFT.instantAds.headline_icon]);
+
+                    var name = f2singleheadline.replace("[%CITY%]", feedItem[i].city);
+                    var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "text", name);
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+                } else if (f2singleheadline.indexOf("[%city%]") > -1) {
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln_cont", "hdln_cont text single");
+                    document.getElementById("frame_crsl_" + (i + 1)).appendChild(frame_crsl_hdln);
+
+                    var frame_crsl_hdln_icon = document.createElement("span");
+                    frame_crsl_hdln_icon.id = "frame_crsl_hdln_icon";
+                    frame_crsl_hdln_icon.className = "icon";
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_icon);
+
+                    imageArray.push([frame_crsl_hdln_icon, myFT.instantAds.headline_icon]);
+
+                    var name = f2singleheadline.replace("[%city%]", feedItem[i].city);
+                    var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "text", name);
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+                } else {
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln_cont", "hdln_cont text single");
+                    document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                    var frame_crsl_hdln_icon = document.createElement("span");
+                    frame_crsl_hdln_icon.id = "frame_crsl_hdln_icon";
+                    frame_crsl_hdln_icon.className = "icon";
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_icon);
+
+                    imageArray.push([frame_crsl_hdln_icon, myFT.instantAds.headline_icon]);
+
+                    var name = f2singleheadline;
+                    var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "text", name);
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+                }
+            } else if (f2singleheadline != "") {
+
+                var f2singleheadline = (isDefault) ? myFT.instantAds.fallback_headline : myFT.instantAds.headline;
+
+                if (f2singleheadline.indexOf("[%CITY%]") > -1) {
+                    var name = f2singleheadline.replace("[%CITY%]", feedItem[i].city);
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln", "hdln_text text single", name);
+                    document.getElementById("frame_crsl_" + (i + 1)).appendChild(frame_crsl_hdln);
+                } else if (f2singleheadline.indexOf("[%city%]") > -1) {
+                    var name = f2singleheadline.replace("[%city%]", feedItem[i].city);
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln", "hdln_text text single", name);
+                    document.getElementById("frame_crsl_" + (i + 1)).appendChild(frame_crsl_hdln);
+                } else {
+                    var name = f2singleheadline;
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln", "hdln_text text single", name);
+                    document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+                }
+            }
+        }
+
+        for (var x = 0; x < document.getElementsByClassName("ctl").length; x++) {
+            document.getElementsByClassName("ctl")[x].classList.add("single");
+        }
+
+        frame_crsl_cont.css({
+            "height": "600px",
+            "width": ((limit + 2) * width) + "px"
+        });
+
+        frame_crsl_cont.css({
+            "transform": "translateX(" + (width * (cItem) * -1) + "px)"
+        });
+
+        setTimeout(function () {
+            frame_crsl_cont.classList.add("crsl_transition");
+        });
+
+        if (document.getElementById("crsl_ctrl_left") != null && document.getElementById("crsl_ctrl_rght") != null) {
+            crsl_ctrl_left.addEventListener("click", function (e) {
+                leftClickEvent(e, "single", "click");
+            });
+
+            crsl_ctrl_rght.addEventListener("click", function (e) {
+                rightClickEvent(e, "single", "click");
+            });
+
+            if (isMobile.any()) {
+                FT.require(["touch"], function () {
+                    FT.$("#main").on("swipeLeft", function (e) {
+                        e.stopPropagation();
+                        rightClickEvent(e, "single", "swipe");
+                    });
+
+                    FT.$("#main").on("swipeRight", function (e) {
+                        e.stopPropagation();
+                        leftClickEvent(e, "single", "swipe");
+                    });
+                });
+            }
+        }
+
+        frame_crsl_cont.addEventListener("transitionend", function () {
+            if (cItem == (limit + 1)) {
+                frame_crsl_cont.classList.remove("crsl_transition");
+
+                cItem = 1;
+                frame_crsl_cont.css({
+                    "transform": "translateX(" + (width * (cItem) * -1) + "px)"
+                });
+
+                if (window.navigator.userAgent.indexOf("MSIE ") > 0 || window.navigator.userAgent.indexOf("Trident/") > 0 || window.navigator.userAgent.indexOf("Edge/") > 0) {
+                    setTimeout(function () {
+                        frame_crsl_cont.classList.add("crsl_transition");
+                        movng = false;
+                    }, 50);
+                } else {
+                    setTimeout(function () {
+                        frame_crsl_cont.classList.add("crsl_transition");
+                        movng = false;
+                    });
+                }
+            } else if (cItem == 0) {
+                frame_crsl_cont.classList.remove("crsl_transition");
+
+                cItem = limit;
+                frame_crsl_cont.css({
+                    "transform": "translateX(" + (width * (cItem) * -1) + "px)"
+                });
+
+                if (window.navigator.userAgent.indexOf("MSIE ") > 0 || window.navigator.userAgent.indexOf("Trident/") > 0 || window.navigator.userAgent.indexOf("Edge/") > 0) {
+                    setTimeout(function () {
+                        frame_crsl_cont.classList.add("crsl_transition");
+                        movng = false;
+                    }, 50);
+                } else {
+                    setTimeout(function () {
+                        frame_crsl_cont.classList.add("crsl_transition");
+                        movng = false;
+                    });
+                }
+            } else {
+                movng = false;
+            }
+        });
+
+        if (endpointType == "city") {
+            setTimeout(function () {
+                autoResize(endpointType);
+                adjustHeightContainer("frame_crsl_hln", 100);
+            }, 500)
+        } else {
+            setTimeout(function () {
+                autoResize(endpointType);
+                adjustHeightContainer("frame_crsl_nme", 75);
+            }, 500)
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function carouselSingle()");
+        feedFail();
+    }
+}
+
+function carouselSlideshow(feedItem, endpointType) {
+    try {
+        console.log("Carousel Type: Slideshow");
+
+        for (var i = 0; i < limit; i++) {
+            // - - ADD: Frame - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl = createElement("frame_crsl_" + (i + 1), "frame_crsl slideshow " + endpointType);
+            frame_crsl_cont.appendChild(frame_crsl);
+
+            // - - ADD: Image - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_img = createElement("frame_crsl_img_" + (i + 1), "frame_crsl_img");
+            frame_crsl.appendChild(frame_crsl_img);
+
+            imageArray.push([frame_crsl_img, feedItem[i].powerfeeds_image.split('adaptiveResize').join('w=300&h=300&adaptiveResize')]);
+
+            // - - ADD: Flag - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_flg = createElement("frame_crsl_flg_" + (i + 1), "frame_crsl_flg");
+            frame_crsl.appendChild(frame_crsl_flg);
+
+            imageArray.push([frame_crsl_flg, myFT.instantAds.flag]);
+
+            // - - ADD: Stars - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_str = createElement("frame_crsl_str_" + (i + 1), "frame_crsl_str");
+                frame_crsl.appendChild(frame_crsl_str);
+
+                imageArray.push([frame_crsl_str, "images/stars_slideshow_" + normalizePrice(feedItem[i].starrating) + ".png"]);
+            }
+
+            // - - ADD: Name - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "city") {
+
+                var f2citySlideshowcopy = (isDefault) ? myFT.instantAds["fallback_city_copy_" + (i + 1)] : myFT.instantAds["city_copy_" + (i + 1)];
+
+                if (f2citySlideshowcopy.indexOf("[%CITY%]") > -1) {
+                    var name = f2citySlideshowcopy.replace("[%CITY%]", feedItem[i].name);
+                } else if (f2citySlideshowcopy.indexOf("[%city%]") > -1) {
+                    var name = f2citySlideshowcopy.replace("[%city%]", feedItem[i].name);
+                } else {
+                    var name = f2citySlideshowcopy;
+                }
+
+                var frame_crsl_nme = createElement("frame_crsl_hln_" + (i + 1), "frame_crsl_hln", name);
+            } else {
+                var f2propSlideshowcopy = (isDefault) ? myFT.instantAds["fallback_city_copy_" + (i + 1)] : feedItem[i].name;
+
+                if (f2propSlideshowcopy.indexOf("[%CITY%]") > -1) {
+                    var name = f2propSlideshowcopy.replace("[%CITY%]", feedItem[i].name);
+                } else if (f2propSlideshowcopy.indexOf("[%city%]") > -1) {
+                    var name = f2propSlideshowcopy.replace("[%city%]", feedItem[i].name);
+                } else {
+                    var name = f2propSlideshowcopy;
+                }
+
+                var frame_crsl_nme = createElement("frame_crsl_nme_" + (i + 1), "frame_crsl_nme", name);
+            }
+
+            frame_crsl.appendChild(frame_crsl_nme);
+
+            // - - ADD: Price - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_prc = createElement("frame_crsl_prc_" + (i + 1), "frame_crsl_prc", "$" + feedItem[i].powerfeeds_price);
+                frame_crsl.appendChild(frame_crsl_prc);
+
+                frame_crsl_prc.css({
+                    "color": myFT.instantAds.price_color
+                });
+            }
+
+            // - - ADD: Sub-Price - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_spr = createElement("frame_crsl_spr_" + (i + 1), "frame_crsl_spr", myFT.instantAds.hotel_price_copy);
+                frame_crsl.appendChild(frame_crsl_spr);
+            }
+
+            // - - ADD: Hitarea - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_hit = createElement("frame_crsl_hit_" + (i + 1), "frame_crsl_hit slideshow");
+            document.getElementById("frame_crsl").appendChild(frame_crsl_hit);
+            if (i == 0) frame_crsl_hit.style.display = "block";
+
+            clickTag(document.getElementById("frame_crsl_hit_" + (i + 1)), (i + 4), feedItem[i].hotel_link);
+
+            // - - ADD: CTA - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_cta = createElement("frame_crsl_cta_" + (i + 1), "frame_crsl_cta", (endpointType == "property") ? myFT.instantAds.CTA_property_copy : myFT.instantAds.CTA_city_copy);
+            frame_crsl.appendChild(frame_crsl_cta);
+
+            frame_crsl_cta.css({
+                "background-color": myFT.instantAds.CTA_color
+            });
+
+            var f2slideshowheadline = (isDefault) ? myFT.instantAds.fallback_headline : myFT.instantAds.headline;
+
+            if (f2slideshowheadline != "" && myFT.instantAds.headline_icon.indexOf("blank") < 0) {
+
+                var frame_crsl_hdln = createElement("frame_crsl_hdln_cont_" + (i + 1), "frame_crsl_hdln_cont text slideshow");
+                document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                var frame_crsl_hdln_icon = document.createElement("span");
+                frame_crsl_hdln_icon.id = "frame_crsl_hdln_icon";
+                frame_crsl_hdln_icon.className = "icon";
+                frame_crsl_hdln.appendChild(frame_crsl_hdln_icon);
+
+                imageArray.push([frame_crsl_hdln_icon, myFT.instantAds.headline_icon]);
+                if (f2slideshowheadline.indexOf("[%CITY%]") > -1) {
+                    var name = f2slideshowheadline.replace("[%CITY%]", feedItem[i].city);
+                    var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "text hl_text", name);
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+
+                    var fontSize = parseFloat(window.getComputedStyle(frame_crsl_hdln, null).getPropertyValue("font-size"));;
+                    for (var f = fontSize; f >= 0; f--) {
+                        var overflow = isOverflownSlideshowHeadlineWIcon(frame_crsl_hdln)
+                        if (overflow) {
+                            fontSize--;
+                            frame_crsl_hdln_text.style.fontSize = fontSize + "px";
+                        }
+                    }
+
+                    adjustHeightContainer("frame_crsl_hdln_cont", 45);
+                    adjustWidthContainer("hl_text", 140);
+                } else if (f2slideshowheadline.indexOf("[%city%]") > -1) {
+                    var name = f2slideshowheadline.replace("[%city%]", feedItem[i].city);
+                    var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "text hl_text", name);
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+
+                    var fontSize = parseFloat(window.getComputedStyle(frame_crsl_hdln, null).getPropertyValue("font-size"));;
+                    for (var f = fontSize; f >= 0; f--) {
+                        var overflow = isOverflownSlideshowHeadlineWIcon(frame_crsl_hdln)
+                        if (overflow) {
+                            fontSize--;
+                            frame_crsl_hdln_text.style.fontSize = fontSize + "px";
+                        }
+                    }
+
+                    adjustHeightContainer("frame_crsl_hdln_cont", 45);
+                    adjustWidthContainer("hl_text", 140);
+                } else {
+                    var name = f2slideshowheadline;
+                    var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "text hl_text", name);
+                    frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+
+                    adjustHeightContainer("frame_crsl_hdln_cont", 45);
+                    adjustWidthContainer("hl_text", 140);
+                }
+            } else if (f2slideshowheadline != "") {
+
+                if (f2slideshowheadline.indexOf("[%CITY%]") > -1) {
+                    var name = f2slideshowheadline.replace("[%CITY%]", feedItem[i].city);
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln_" + (i + 1), "frame_crsl_hdln text slideshow", name);
+                    document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                    var fontSize = parseFloat(window.getComputedStyle(frame_crsl_hdln, null).getPropertyValue("font-size"));
+                    for (var f = fontSize; f >= 0; f--) {
+                        var overflow = isOverflownSlideshowHeadline(frame_crsl_hdln)
+                        if (overflow) {
+                            fontSize--;
+                            frame_crsl_hdln.style.fontSize = fontSize + "px";
+                        }
+                    }
+
+                    adjustHeightContainer("frame_crsl_hdln", 45);
+                    adjustWidthContainer("frame_crsl_hdln", 260);
+                } else if (f2slideshowheadline.indexOf("[%city%]") > -1) {
+                    var name = f2slideshowheadline.replace("[%city%]", feedItem[i].city);
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln_" + (i + 1), "frame_crsl_hdln text slideshow", name);
+                    document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                    var fontSize = parseFloat(window.getComputedStyle(frame_crsl_hdln, null).getPropertyValue("font-size"));;
+                    for (var f = fontSize; f >= 0; f--) {
+                        var overflow = isOverflownSlideshowHeadline(frame_crsl_hdln)
+                        if (overflow) {
+                            fontSize--;
+                            frame_crsl_hdln.style.fontSize = fontSize + "px";
+                        }
+                    }
+
+                    adjustHeightContainer("frame_crsl_hdln", 45);
+                    adjustWidthContainer("frame_crsl_hdln", 260);
+                } else {
+                    var name = f2slideshowheadline;
+                    var frame_crsl_hdln = createElement("frame_crsl_hdln", "frame_crsl_hdln text slideshow", name);
+                    document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                    adjustHeightContainer("frame_crsl_hdln", 45);
+                    adjustWidthContainer("frame_crsl_hdln", 260);
+                }
+            }
+        }
+
+        // - - ADD: Logo - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        var frame_crsl_logo = createElement("frame_crsl_logo", "img");
+        document.getElementById("frame_crsl").appendChild(frame_crsl_logo);
+
+        imageArray.push([frame_crsl_logo, myFT.instantAds.logo]);
+
+        for (var x = 0; x < document.getElementsByClassName("ctl").length; x++) {
+            document.getElementsByClassName("ctl")[x].classList.add("slideshow");
+        }
+
+        if (document.getElementById("crsl_ctrl_left") != null && document.getElementById("crsl_ctrl_rght") != null) {
+            crsl_ctrl_left.addEventListener("click", function (e) {
+                e.stopPropagation();
+                leftClickEvent(e, "slideshow", "click");
+            });
+
+            crsl_ctrl_rght.addEventListener("click", function (e) {
+                e.stopPropagation();
+                rightClickEvent(e, "slideshow", "click");
+            });
+
+            if (isMobile.any()) {
+                FT.require(["touch"], function () {
+                    FT.$("#main").on("swipeLeft", function (e) {
+                        e.stopPropagation();
+                        rightClickEvent(e, "slideshow", "swipe");
+                    });
+
+                    FT.$("#main").on("swipeRight", function (e) {
+                        e.stopPropagation();
+                        leftClickEvent(e, "slideshow", "swipe");
+                    });
+                });
+            }
+        }
+
+        if (endpointType == "city") {
+            setTimeout(function () {
+                autoResize(endpointType);
+                adjustHeightContainer("frame_crsl_hln", 129);
+
+                for (var i = 0; i < document.getElementsByClassName("frame_crsl").length; i++) {
+                    if (i == 0) {
+                        var aClass = "cntr";
+                    } else if (i == 1) {
+                        var aClass = "rght";
+                    } else if (i == 2) {
+                        var aClass = "left";
+                    }
+
+                    document.getElementsByClassName("frame_crsl")[i].classList.add(aClass);
+                    //                    document.getElementsByClassName("frame_crsl_hln")[i].css({
+                    //                        "height": "50px"
+                    //                    });
+                }
+
+                for (var i = 0; i < document.getElementsByClassName("frame_crsl_hdln_cont").length; i++) {
+                    if (i == 0) {
+                        var aClass = "cntr";
+                    } else if (i == 1) {
+                        var aClass = "rght";
+                    } else if (i == 2) {
+                        var aClass = "left";
+                    }
+
+                    document.getElementsByClassName("frame_crsl_hdln_cont")[i].classList.add(aClass);
+                }
+
+                for (var i = 0; i < document.getElementsByClassName("frame_crsl_hdln").length; i++) {
+                    if (i == 0) {
+                        var aClass = "cntr";
+                    } else if (i == 1) {
+                        var aClass = "rght";
+                    } else if (i == 2) {
+                        var aClass = "left";
+                    }
+
+                    document.getElementsByClassName("frame_crsl_hdln")[i].classList.add(aClass);
+                }
+            }, 500)
+        } else {
+            autoResize(endpointType);
+            adjustHeightContainer("frame_crsl_nme", 50);
+
+            for (var i = 0; i < document.getElementsByClassName("frame_crsl").length; i++) {
+                if (i == 0) {
+                    var aClass = "cntr";
+                } else if (i == 1) {
+                    var aClass = "rght";
+                } else if (i == 2) {
+                    var aClass = "left";
+                }
+
+                document.getElementsByClassName("frame_crsl")[i].classList.add(aClass);
+            }
+
+            for (var i = 0; i < document.getElementsByClassName("frame_crsl_hdln_cont").length; i++) {
+                if (i == 0) {
+                    var aClass = "cntr";
+                } else if (i == 1) {
+                    var aClass = "rght";
+                } else if (i == 2) {
+                    var aClass = "left";
+                }
+
+                document.getElementsByClassName("frame_crsl_hdln_cont")[i].classList.add(aClass);
+            }
+
+            for (var i = 0; i < document.getElementsByClassName("frame_crsl_hdln").length; i++) {
+                if (i == 0) {
+                    var aClass = "cntr";
+                } else if (i == 1) {
+                    var aClass = "rght";
+                } else if (i == 2) {
+                    var aClass = "left";
+                }
+
+                document.getElementsByClassName("frame_crsl_hdln")[i].classList.add(aClass);
+            }
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function carouselSlideshow()");
+        feedFail();
+    }
+}
+
+function isOverflownSlideshowHeadline(element) {
+    return element.clientHeight > 45;
+}
+
+function isOverflownSlideshowHeadlineWIcon(element) {
+    return element.clientHeight > 45;
+}
+
+function isOverflownAllHeadlineWIcon(element) {
+    return element.clientHeight > 30;
+}
+
+function isOverflownAllHeadline(element) {
+    return element.clientHeight > 40;
+}
+
+function isOFwidth(element, width) {
+    return element.clientWidth > width;
+}
+
+function carouselAll(feedItem, endpointType) {
+    try {
+        console.log("Carousel Type: All");
+
+        for (var i = 0; i < limit; i++) {
+            // - - ADD: Frame - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl = createElement("frame_crsl_" + (i + 1), "frame_crsl all " + endpointType);
+            frame_crsl_cont.appendChild(frame_crsl);
+
+            // - - ADD: Image - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_img = createElement("frame_crsl_img_" + (i + 1), "frame_crsl_img");
+            frame_crsl.appendChild(frame_crsl_img);
+
+            imageArray.push([frame_crsl_img, feedItem[i].powerfeeds_image.split('adaptiveResize').join('w=300&h=300&adaptiveResize')]);
+
+            // - - ADD: Flag - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_flg = createElement("frame_crsl_flg_" + (i + 1), "frame_crsl_flg");
+            frame_crsl.appendChild(frame_crsl_flg);
+
+            imageArray.push([frame_crsl_flg, myFT.instantAds.flag]);
+
+            // - - ADD: Name - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "city") {
+
+                var f2cityAllcopy = (isDefault) ? myFT.instantAds["fallback_city_copy_" + (i + 1)] : myFT.instantAds["city_copy_" + (i + 1)];
+
+                if (f2cityAllcopy.indexOf("[%CITY%]") > -1) {
+                    var name = f2cityAllcopy.replace("[%CITY%]", feedItem[i].name);
+                } else if (f2cityAllcopy.indexOf("[%city%]") > -1) {
+                    var name = f2cityAllcopy.replace("[%city%]", feedItem[i].name);
+                } else {
+                    var name = f2cityAllcopy;
+                }
+
+                var frame_crsl_nme = createElement("frame_crsl_hln_" + (i + 1), "frame_crsl_hln", name);
+            } else {
+
+                var f2propAllcopy = (isDefault) ? myFT.instantAds["fallback_city_copy_" + (i + 1)] : feedItem[i].name;
+
+                if (f2propAllcopy.indexOf("[%CITY%]") > -1) {
+                    var name = f2propAllcopy.replace("[%CITY%]", feedItem[i].name);
+                } else if (f2propAllcopy.indexOf("[%city%]") > -1) {
+                    var name = f2propAllcopy.replace("[%city%]", feedItem[i].name);
+                } else {
+                    var name = f2propAllcopy;
+                }
+
+                var frame_crsl_nme = createElement("frame_crsl_nme_" + (i + 1), "frame_crsl_nme", name);
+            }
+
+            frame_crsl.appendChild(frame_crsl_nme);
+
+            // - - ADD: Sub-Price - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_spr = createElement("frame_crsl_spr_" + (i + 1), "frame_crsl_spr", myFT.instantAds.hotel_price_copy);
+                frame_crsl.appendChild(frame_crsl_spr);
+            }
+
+            // - - ADD: Price - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            if (endpointType == "property") {
+                var frame_crsl_prc = createElement("frame_crsl_prc_" + (i + 1), "frame_crsl_prc", "$" + feedItem[i].powerfeeds_price);
+                frame_crsl.appendChild(frame_crsl_prc);
+
+                frame_crsl_prc.css({
+                    "color": myFT.instantAds.price_color
+                });
+            }
+
+            // - - ADD: CTA - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_cta = createElement("frame_crsl_cta_" + (i + 1), "frame_crsl_cta", (endpointType == "property") ? myFT.instantAds.CTA_property_copy : myFT.instantAds.CTA_city_copy);
+            frame_crsl.appendChild(frame_crsl_cta);
+
+            frame_crsl_cta.css({
+                "background-color": myFT.instantAds.CTA_color
+            });
+
+            // - - ADD: Hitarea - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+            var frame_crsl_hit = createElement("frame_crsl_hit_" + (i + 1), "frame_crsl_hit");
+            frame_crsl.appendChild(frame_crsl_hit);
+
+            clickTag(document.getElementById("frame_crsl_hit_" + (i + 1)), (i + 4), feedItem[i].hotel_link);
+
+            if (document.getElementById("frame_crsl_str_" + (i + 1)) != null) document.getElementById("frame_crsl_str_" + (i + 1)).remove();
+        }
+
+        // - - ADD: Logo - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        var frame_crsl_logo = createElement("frame_crsl_logo", "img");
+        document.getElementById("frame_crsl").appendChild(frame_crsl_logo);
+
+        imageArray.push([frame_crsl_logo, myFT.instantAds.logo]);
+
+        clickTag(document.getElementById("frame_crsl_logo"), 3, feedItem[0].city_link);
+
+        // - - ADD: Headline - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        var f2allheadline = (isDefault) ? myFT.instantAds.fallback_headline : myFT.instantAds.headline;
+
+        if (f2allheadline != "" && myFT.instantAds.headline_icon.indexOf("blank") < 0) {
+
+            var frame_crsl_hdln = createElement("frame_crsl_hdln_cont", "frame_crsl_hdln_cont text all");
+            document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+            var frame_crsl_hdln_icon = document.createElement("span");
+            frame_crsl_hdln_icon.id = "frame_crsl_hdln_icon";
+            frame_crsl_hdln_icon.className = "icon";
+            frame_crsl_hdln.appendChild(frame_crsl_hdln_icon);
+
+            imageArray.push([frame_crsl_hdln_icon, myFT.instantAds.headline_icon]);
+
+            if (f2allheadline.indexOf("[%CITY%]") > -1) {
+                var name = f2allheadline.replace("[%CITY%]", feedItem[0].city);
+                var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "hl_text text", name);
+                frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+
+                var fontSize = parseFloat(18);
+                for (var f = fontSize; f >= 0; f--) {
+                    var overflow = isOverflownAllHeadlineWIcon(frame_crsl_hdln_text);
+                    if (overflow) {
+                        fontSize--;
+                        frame_crsl_hdln_text.style.fontSize = fontSize + "px";
+                    }
+                }
+
+                adjustHeightContainer("frame_crsl_hdln_cont", 35);
+
+                for (var i = 0; i < document.getElementsByClassName("hl_text").length; i++) {
+                    document.getElementsByClassName("hl_text")[i].css({
+                        "width": "auto"
+                    });
+                }
+            } else if (f2allheadline.indexOf("[%city%]") > -1) {
+                var name = f2allheadline.replace("[%city%]", feedItem[0].city);
+                var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "hl_text text", name);
+                frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+
+                var fontSize = parseFloat(18);
+                for (var f = fontSize; f >= 0; f--) {
+                    var overflow = isOverflownAllHeadlineWIcon(frame_crsl_hdln_text);
+                    if (overflow) {
+                        fontSize--;
+                        frame_crsl_hdln_text.style.fontSize = fontSize + "px";
+                    }
+                }
+
+                adjustHeightContainer("frame_crsl_hdln_cont", 35);
+
+                for (var i = 0; i < document.getElementsByClassName("hl_text").length; i++) {
+                    document.getElementsByClassName("hl_text")[i].css({
+                        "width": "auto"
+                    });
+                }
+            } else {
+                var frame_crsl_hdln_text = createElement("frame_crsl_hdln_text", "hl_text text", f2allheadline);
+                frame_crsl_hdln.appendChild(frame_crsl_hdln_text);
+
+                adjustHeightContainer("frame_crsl_hdln_cont", 35);
+
+                for (var i = 0; i < document.getElementsByClassName("hl_text").length; i++) {
+                    document.getElementsByClassName("hl_text")[i].css({
+                        "width": "auto"
+                    });
+                }
+            }
+
+
+
+            clickTag(document.getElementById("frame_crsl_hdln_cont"), 3, feedItem[0].city_link);
+        } else if (f2allheadline != "") {
+
+            if (f2allheadline.indexOf("[%CITY%]") > -1) {
+                var name = f2allheadline.replace("[%CITY%]", feedItem[0].city);
+                var frame_crsl_hdln = createElement("frame_crsl_hdln", "frame_crsl_hdln text all", name);
+                document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                var fontSize = parseFloat(18);
+                for (var f = fontSize; f >= 0; f--) {
+                    var overflow = isOverflownAllHeadline(frame_crsl_hdln);
+                    if (overflow) {
+                        fontSize--;
+                        frame_crsl_hdln.style.fontSize = fontSize + "px";
+                    }
+                }
+
+                adjustHeightContainer("frame_crsl_hdln", 35);
+                frame_crsl_hdln.style.width = "260px";
+            } else if (f2allheadline.indexOf("[%city%]") > -1) {
+                var name = f2allheadline.replace("[%city%]", feedItem[0].city);
+                var frame_crsl_hdln = createElement("frame_crsl_hdln", "frame_crsl_hdln text all", name);
+                document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                var fontSize = parseFloat(18);
+                for (var f = fontSize; f >= 0; f--) {
+                    var overflow = isOverflownAllHeadline(frame_crsl_hdln);
+                    if (overflow) {
+                        fontSize--;
+                        frame_crsl_hdln.style.fontSize = fontSize + "px";
+                    }
+                }
+
+                adjustHeightContainer("frame_crsl_hdln", 35);
+                frame_crsl_hdln.style.width = "260px";
+            } else {
+                var name = f2allheadline;
+                var frame_crsl_hdln = createElement("frame_crsl_hdln", "text all", name);
+                document.getElementById("frame_crsl").appendChild(frame_crsl_hdln);
+
+                frame_crsl_hdln.style.height = "35px";
+                frame_crsl_hdln.style.width = "260px";
+            }
+
+            clickTag(document.getElementById("frame_crsl_hdln"), 3, feedItem[0].city_link);
+        }
+
+        if (document.getElementById("frame_crsl_ctrl") != null) frame_crsl_ctrl.remove();
+
+        if (endpointType == "city") {
+            setTimeout(function () {
+                autoResize(endpointType);
+            }, 500)
+        } else {
+            setTimeout(function () {
+                autoResize(endpointType);
+                adjustHeightContainer("frame_crsl_nme", 30);
+            }, 500)
+        }
+    } catch (error) {
+        console.error("Error: " + error.message + ": function carouselAll()");
+        feedFail();
+    }
+}
+
+function leftClickEvent(e, t, a) {
+    if (a == "click") {
+        if (movng == false) {
+            if (introHidden == true) {
+                myFT.tracker("leftArrowClick", 0, "leftArrowClick");
+            }
+        }
+    } else if (a == "swipe") {
+        if (movng == false) {
+            if (introHidden == true) {
+                myFT.tracker("leftSwipe", 0, "leftSwipe");
+            }
+        }
+    }
+
+    if (t == "single") {
+        if (e != undefined) {
+            clearInterval(loop);
+            loop = 0;
+        }
+
+        if (movng == false) {
+            movng = true;
+            cItem--;
+
+            frame_crsl_cont.css({
+                "transform": "translateX(" + (width * (cItem) * -1) + "px)"
+            });
+        }
+    } else if (t == "slideshow") {
+        if (e != undefined) {
+            clearInterval(loop);
+            loop = 0;
+        }
+
+        if (movng == false) {
+            movng = true;
+
+            var left = document.getElementsByClassName("left")[0];
+            var cntr = document.getElementsByClassName("cntr")[0];
+            var rght = document.getElementsByClassName("rght")[0];
+
+            if (document.getElementsByClassName("left")[1]) {
+                var left1 = document.getElementsByClassName("left")[1];
+                var cntr1 = document.getElementsByClassName("cntr")[1];
+                var rght1 = document.getElementsByClassName("rght")[1];
+                left1.classList.remove("left");
+                left1.classList.add("cntr");
+                left1.style.opacity = 1;
+                cntr1.classList.remove("cntr");
+                cntr1.classList.add("rght");
+                cntr1.style.opacity = 0;
+                rght1.classList.remove("rght");
+                rght1.classList.add("left");
+                rght1.style.opacity = 0;
+            }
+
+            left.classList.remove("left");
+            left.classList.add("cntr");
+            left.style.zIndex = 3;
+
+            cntr.classList.remove("cntr");
+            cntr.classList.add("rght");
+            cntr.style.zIndex = 2;
+
+            rght.classList.remove("rght");
+            rght.classList.add("left");
+            rght.style.zIndex = 1;
+
+            for (var i = 0; i < document.getElementsByClassName("frame_crsl").length; i++) {
+                if (document.getElementsByClassName("frame_crsl")[i].classList.contains("cntr") == true) {
+                    document.getElementsByClassName("frame_crsl_hit")[i].style.display = "block";
+                } else {
+                    document.getElementsByClassName("frame_crsl_hit")[i].style.display = "none";
+                }
+            }
+        }
+
+        document.getElementsByClassName("rght")[0].addEventListener("transitionend", function () {
+            movng = false;
+        });
+    }
+}
+
+function rightClickEvent(e, t, a) {
+    if (a == "click") {
+        if (movng == false) {
+            if (introHidden == true) {
+                myFT.tracker("rightArrowClick", 0, "rightArrowClick");
+            }
+        }
+    } else if (a == "swipe") {
+        if (movng == false) {
+            if (introHidden == true) {
+                myFT.tracker("rightSwipe", 0, "rightSwipe");
+            }
+        }
+    }
+
+    if (t == "single") {
+        if (e != undefined) {
+            clearInterval(loop);
+            loop = 0;
+        }
+
+        if (movng == false) {
+            movng = true;
+            cItem++;
+
+            frame_crsl_cont.css({
+                "transform": "translateX(" + (width * (cItem) * -1) + "px)"
+            });
+        }
+    } else if (t == "slideshow") {
+        if (e != undefined) {
+            clearInterval(loop);
+            loop = 0;
+        }
+
+        if (movng == false) {
+            movng = true;
+
+            var left = document.getElementsByClassName("left")[0];
+            var cntr = document.getElementsByClassName("cntr")[0];
+            var rght = document.getElementsByClassName("rght")[0];
+
+            if (document.getElementsByClassName("left")[1]) {
+                var left1 = document.getElementsByClassName("left")[1];
+                var cntr1 = document.getElementsByClassName("cntr")[1];
+                var rght1 = document.getElementsByClassName("rght")[1];
+                left1.classList.remove("left");
+                left1.classList.add("rght");
+                left1.style.opacity = 0;
+                cntr1.classList.remove("cntr");
+                cntr1.classList.add("left");
+                cntr1.style.opacity = 0;
+                rght1.classList.remove("rght");
+                rght1.classList.add("cntr");
+                rght1.style.opacity = 1;
+            }
+
+            left.classList.remove("left");
+            left.classList.add("rght");
+            left.style.zIndex = 1;
+
+            cntr.classList.remove("cntr");
+            cntr.classList.add("left");
+            cntr.style.zIndex = 2;
+
+            rght.classList.remove("rght");
+            rght.classList.add("cntr");
+            rght.style.zIndex = 3;
+
+            for (var i = 0; i < document.getElementsByClassName("frame_crsl").length; i++) {
+                if (document.getElementsByClassName("frame_crsl")[i].classList.contains("cntr") == true) {
+                    document.getElementsByClassName("frame_crsl_hit")[i].style.display = "block";
+                } else {
+                    document.getElementsByClassName("frame_crsl_hit")[i].style.display = "none";
+                }
+            }
+        }
+
+        document.getElementsByClassName("rght")[0].addEventListener("transitionend", function () {
+            movng = false;
+        });
+    }
+}
+
+function carouselAutoplay(t) {
+    try {
+        var counter = 0;
+
+        loop = setInterval(function () {
+            if (counter != 2) {
+                counter++;
+                rightClickEvent(undefined, t);
+            } else {
+                clearInterval(loop);
+                loop = 0;
+            }
+        }, 2500);
+    } catch (error) {
+        console.error("Error: " + error.message + ": function carouselAutoplay()");
+        feedFail();
+    }
+}
+
+Element.prototype.css = function (o) {
+    for (var p in o) {
+        this.style[p] = o[p];
+    }
+}
+
+if (!("remove" in Element.prototype)) {
+    Element.prototype.remove = function () {
+        if (this.parentNode) {
+            this.parentNode.removeChild(this);
+        }
+    };
+}
+
+function clickTag(e, i, l) {
+    try {
+        if (e.length != undefined) {
+            for (var x = 0; x < e.length; x++) {
+                e[x].addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    (l != undefined && l != "" && l != null) ? myFT.clickTag(i, l): myFT.clickTag(i);
+                });
+            }
+        } else {
+            e.addEventListener("click", function (e) {
+                e.preventDefault();
+
+                (l != undefined && l != "" && l != null) ? myFT.clickTag(i, l): myFT.clickTag(i);
+            });
+        }
+    } catch (error) {
+        console.error("Error on clickTag(): " + error.message);
+    }
+}
+
+function createElement(i, c, v) {
+    var e = document.createElement("div");
+    e.id = i;
+    e.className = c;
+
+    if (v != undefined) {
+        e.innerHTML = v;
+    }
+
+    return e;
+}
+
+function normalizePrice(p) {
+    var v = Number(p);
+    var a = p.split(".");
+
+    if (a.length == 1 || a[1].length < 3) v = v.toFixed(1);
+
+    v = v.replace(".", "_");
+
+    return v;
+}
+
+function normalizeIA(i) {
+    (i.toLowerCase() == "true" || i.toLowerCase() == "yes" || i.toLowerCase() == "on") ? i = "true": i = "false";
+
+    return i;
+}
+
+function autoResize(t) {
+    var maxHeight;
+
+    if (myFT.instantAds.carousel_layout.toLowerCase() == "slideshow" && t == "city") {
+        maxHeight = 129;
+    } else if (myFT.instantAds.carousel_layout.toLowerCase() == "slideshow" && t == "property") {
+        maxHeight = 49;
+    } else if (myFT.instantAds.carousel_layout.toLowerCase() == "all" && t == "city") {
+        maxHeight = 42;
+    } else if (myFT.instantAds.carousel_layout.toLowerCase() == "all" && t == "property") {
+        maxHeight = 30;
+    } else if (myFT.instantAds.carousel_layout.toLowerCase() == "single" && t == "city") {
+        maxHeight = 99;
+    } else if (myFT.instantAds.carousel_layout.toLowerCase() == "single" && t == "property") {
+        maxHeight = 74;
+    }
+
+    var e = (t == "city") ? document.getElementsByClassName("frame_crsl_hln") : document.getElementsByClassName("frame_crsl_nme");
+
+    for (var i = 0; i < frame_crsl_cont.children.length; i++) {
+        var fontSize = parseFloat(window.getComputedStyle(e[i], null).getPropertyValue("font-size"));
+
+        while (parseFloat(window.getComputedStyle(e[i], null).getPropertyValue("height")) > maxHeight) {
+            if (fontSize <= 0) {
+                break;
+            } else {
+                fontSize = fontSize - 1;
+                e[i].style.fontSize = fontSize + "px";
+            }
+        }
+    }
+}
+
+function adjustHeightContainer(c, h) {
+    for (var i = 0; i < document.getElementsByClassName(c).length; i++) {
+        document.getElementsByClassName(c)[i].css({
+            "height": h + "px"
+        });
+    }
+}
+
+function adjustWidthContainer(c, h) {
+    for (var i = 0; i < document.getElementsByClassName(c).length; i++) {
+        document.getElementsByClassName(c)[i].css({
+            "width": h + "px"
+        });
+    }
+}
+
+function checkPlatform() {
+    try {
+        var a = new Array();
+
+        if (navigator.platform.toLowerCase().indexOf("mac") > -1) {
+            a[0] = "macOS";
+        } else if (navigator.platform.toLowerCase().indexOf("win") > -1) {
+            a[0] = "Windows";
+        }
+
+        var MSIE = window.navigator.userAgent.indexOf("MSIE ");
+        var Edge = window.navigator.userAgent.indexOf("Edge/");
+        var Trdt = window.navigator.userAgent.indexOf("Trident/");
+
+        if (navigator.userAgent.toLowerCase().indexOf("chrome") > -1) {
+            a[1] = "Google Chrome";
+        } else if (navigator.userAgent.toLowerCase().indexOf("firefox") > -1) {
+            a[1] = "Mozilla Firefox";
+        } else if (navigator.vendor && navigator.vendor.toLowerCase().indexOf("apple") > -1) {
+            a[1] = "Safari";
+        } else if (MSIE > 0 || Edge > 0 || Trdt > 0) {
+            a[1] = "Internet Explorer";
+        }
+
+        return a;
+    } catch (error) {
+        console.error("Error on checkPlatform(): " + error.message);
+    }
+}

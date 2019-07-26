@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!-- saved from url=(0059)https://s0.2mdn.net/4601119/1551132894467/728x90/index.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><title>728x90</title><meta name="ad.size" content="width=728,height=90"><script async="" src="./TweenMax.min.js.download" integrity="sha256-ABrLsV2caVEMCBfm3eNhv/CYQG+tGCqzw2f4b/Pag0M=" crossorigin="anonymous"></script><script>var clickTag = "https://us.etrade.com/what-we-offer/our-accounts/rollover-ira";</script><link rel="stylesheet" type="text/css" href="./main.css"><script type="text/javascript">
+    
+      (function() {
+        var relegateNavigation = '';
+        var handleClickTagMessage = function(e) {
+          try {
+            var eventData = JSON.parse(e.data);
+          } catch (err) {
+            return;
+          }
+          if (eventData.isInitClickTag) {
+            if (eventData.clickTags) {
+              for (var i = 0; i < eventData.clickTags.length; i++) {
+                var clkTag = eventData.clickTags[i];
+                window[clkTag.name] = clkTag.url;
+              }
+            } else if (eventData.clickTag) {
+              window.clickTag = eventData.clickTag;
+            }
+            relegateNavigation = eventData.relegateNavigation;
+          }
+        };
+
+        if (open.call) {
+          window.open = function(open) {
+            return function(url, name, features) {
+              if (relegateNavigation === 'parent') {
+                var message = {'clickTag': url, 'isPostClickTag': true};
+                parent.postMessage(JSON.stringify(message), '*');
+              } else {
+                var args = [url, name];
+                if (features) {
+                  args.push(features);
+                }
+                open.apply(window, args);
+              }
+            };
+          }(window.open);
+        }
+
+        if (window.addEventListener) {
+          window.addEventListener(
+              'message', handleClickTagMessage, false);
+        } else {
+          window.attachEvent('onmessage', handleClickTagMessage);
+        }
+      })();
+    
+  </script></head><body><div id="container" style="width: 728px; height: 90px; visibility: inherit; opacity: 1;"><a href="javascript:void(window.open(window.clickTag))"><div id="bg" class="sprite"></div><div id="cover2" class="sprite" style="width: 0px;"></div><div class="sprite retina_container"><div id="copy_ef_b" class="sprite" style="visibility: inherit; opacity: 1; transform: matrix(1, 0, 0, 1, 0, 0);"></div><div id="copy_ef_a" class="sprite" style="visibility: inherit; opacity: 1; transform: matrix(1, 0, 0, 1, 0, 0);"></div><div id="copy1" class="sprite"><div id="copy1a" class="sprite" style="visibility: hidden; opacity: 0; transform: matrix(1, 0, 0, 1, -182, 0);"></div></div></div><div id="green_box" class="sprite"></div><div id="cover" class="sprite" style="width: 8px;"></div><div id="copy_holder" class="sprite retina_container" style="width: 16px;"><div id="copy2" class="sprite"><div id="copy2b" class="sprite" style="visibility: hidden; opacity: 0; transform: matrix(1, 0, 0, 1, 182, 0);"></div><div id="copy2a" class="sprite" style="visibility: hidden; opacity: 0; transform: matrix(1, 0, 0, 1, 182, 0);"></div></div></div><div id="thick_border" class="sprite" style="border-width: 8px 8px 8px 0px;"></div><div class="sprite retina_container"><div id="logo" class="sprite"></div><div id="legal" class="sprite"></div></div><div id="cta_container" class="sprite" style="visibility: inherit; opacity: 1;"><div id="cta" class="sprite" style="background-image: none; height: 28px; width: 111px; transform-origin: center center 0px; transform: translate3d(-1.6757px, -0.335139px, 0px);"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 101 26"><title>cta-copy</title><rect width="101" height="26" rx="5" ry="5" style="fill: #f0efe5"></rect><path d="M184,197.8h1.72v-1.87h.95l.76,1.87h1.91l-1-2.2a2,2,0,0,0,.94-1.83,1.92,1.92,0,0,0-1.71-2.1H184v6.13Zm2.88-4.7a.64.64,0,0,1,.68.59.28.28,0,0,1,0,.13.66.66,0,0,1-.58.73h-1.26V193.1Zm3.32,1.63c0-2.12,1-3.19,3.05-3.19s3.05,1.08,3.05,3.2-1,3.2-3.06,3.2-3-1.1-3-3.22Zm1.76,0c0,1.28.43,1.75,1.28,1.75s1.28-.46,1.28-1.76-.43-1.75-1.28-1.75-1.28.45-1.28,1.76Zm7.4,1.6v-4.67h-1.76v6.13h4.7v-1.45h-2.94Zm5.81,0v-4.67h-1.76v6.13h4.7v-1.45h-2.94Zm3.52-1.62c0-2.12,1-3.19,3.06-3.19s3,1.08,3,3.2-1,3.2-3.06,3.2-3-1.09-3-3.21Zm1.76,0c0,1.28.43,1.75,1.28,1.75S213,196,213,194.72s-.42-1.74-1.27-1.74-1.3.45-1.3,1.76Zm4.83-3.07,2.05,6.13h2l2.05-6.13h-1.75l-1.28,4.2-1.27-4.2Zm7.07,6.13h4.88v-1.37H224v-1h2.65V194H224v-1h3.08v-1.35h-4.79v6.13Zm6.17,0h1.71v-1.87h1l.76,1.87h1.92l-1-2.2a1.94,1.94,0,0,0,.94-1.83,1.91,1.91,0,0,0-1.7-2.1h-3.59v6.13Zm2.88-4.7a.63.63,0,0,1,.68.58.56.56,0,0,1,0,.13.66.66,0,0,1-.58.73H230.2V193.1h1.17Zm5.42-1.43v1.48h1.79v4.65h1.74v-4.64h1.79v-1.49Zm6,3.05c0-2.12,1-3.19,3.06-3.19s3,1.08,3,3.2-1,3.2-3.06,3.2-3-1.09-3-3.21Zm1.76,0c0,1.28.43,1.75,1.28,1.75s1.28-.46,1.28-1.77-.42-1.74-1.27-1.74-1.29.45-1.29,1.76Zm8.13,1.65c.82,0,1.33-.43,1.33-1.68s-.4-1.64-1.18-1.64H252v3.32Zm-2.49,1.4v-6.13H253c1.94,0,2.81,1,2.81,3s-.92,3.11-3,3.11Zm10.29,0h1.78l-2-6.13h-2.08l-2,6.13h1.73l.24-.82h2.12Zm-1.31-4.4.68,2.26h-1.35Zm4.82,2.2v2.2h1.75v-2.14l2.17-4H266.1L265,194.07l-1.17-2.41h-1.94Z" transform="translate(-175 -182)" style="fill: #624da0"></path></svg></div></div><div id="border_top" class="sprite" style="width: 728px;"></div><div id="border_right" class="sprite" style="height: 90px;"></div><div id="border_left" class="sprite" style="height: 90px;"></div><div id="border_bottom" class="sprite" style="width: 728px;"></div></a></div><script type="text/javascript" src="./main.js.download"></script><script type="text/javascript">window.onload = function(){
+        window.setTimeout(function() { init(); }, 1000);
+    }</script></body></html>

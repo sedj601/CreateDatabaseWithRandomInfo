@@ -1,0 +1,32 @@
+
+var ftGUID_3857170="4200233B1B1DF4";
+var ftConfID_3857170="13460211";
+var ftParams_3857170="ftx=&fty=&ftadz=&ftscw=&ft_custom=&ftOBA=1&ft_ifb=1&ft_domain=www.randomlists.com&ft_agentEnv=0&ft_referrer=https%3A%2F%2Fwww.randomlists.com%2Frandom-movies&cachebuster=386294291113915.50951199126";
+var ftKeyword_3857170="";
+var ftCustom_3857170="";
+var ftSection_3857170="";
+var ftSegment_3857170="yo5,xp6,x4l,v6j,xqr";
+var ftSegmentList_3857170=[{s:'yo5'},{s:'xp6'},{s:'x4l'},{s:'v6j'},{s:'xqr'}];
+var ftRuleMatch_3857170="0";
+var ftTimestamp_3857170="1564084319";
+var ftGeoC2_3857170="us";
+var ftGeoState_3857170="al";
+var ftGeoCity_3857170="auburn university";
+var ftISP_3857170="auburn university";
+var ftSpeed_3857170="broadband";
+var ftDMA_3857170="522";
+var ftLong_3857170="-85.5085";
+var ftLat_3857170="32.6021";
+var ftPostal_3857170="36849";
+var ftTimeZone_3857170="-500";
+var ftMobileCarrier_3857170="";
+var ftImp3857170 = {};
+ftImp3857170.privacy = "x";
+ftImp3857170.guidAge = "23";
+ftImp3857170.impID = "9ADCC61D-C301-3501-A823-D9913DB520AF";
+ftImp3857170.duid = "FT:4200233B1B1DF4";
+
+ftImp3857170.ft_tpplid = "";
+ftImp3857170.ft_c = {};
+
+document.write('<scr'+'ipt src="https://cdn.flashtalking.com/xre/385/3857170/2606613/js/j-3857170-2606613.js" id="ftscript_m3857170" name="ftscript_m3857170"></scr'+'ipt>');

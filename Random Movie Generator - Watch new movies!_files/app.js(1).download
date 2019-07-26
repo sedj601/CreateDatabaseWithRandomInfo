@@ -1,0 +1,32 @@
+var app = {
+	init: function () {
+		app.appUI = {
+			container: document.getElementById('ola'),
+		};
+		app.startAd();
+	},
+	/**
+	 * initCreate()
+	 * Initialized create.js and starts playing the animation based on the code generated when publishing cnvas FLAs
+	 */
+	initCreate: function () {
+		//console.log("initCreate");
+		// init() comes from the crete js generated code. It starts the cnvas animation.
+		init();
+	},
+	/**
+	 * startAd()
+	 * Set click event and start animation
+	 */
+	startAd: function () {
+		//console.log("startAd");
+		app.appUI.container.addEventListener('click', function () {
+			window.open(window.clickTag);
+		}, false);
+		app.initCreate();
+	}
+};
+//once the content is loaded initialize double click and our app
+window.onload = function () {
+	app.init();
+};
